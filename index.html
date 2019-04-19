@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <head>
   <meta charset="utf-8">
@@ -10,7 +11,7 @@
       font-size: 1.5em;
       line-height: 1;
       padding: 7px;
-      background: black;
+      background: blue;
       color: lightgray;
       border-radius: 20px;
     }
@@ -22,132 +23,15 @@
   </style>
 </head>
 <body>
-  <svg width="1500" height="800"></svg>
-  <script>
-    const svg = d3.select('svg').style('background-color', '#222');
-    const path = svg.append('path').attr('stroke', 'gray');
-    const citiesG = svg.append('g');
-    const projection = d3.geoOrthographic();
-    const initialScale = projection.scale();
-    const geoPath = d3.geoPath().projection(projection);
-    let moving = false;
-    const rValue = d => d.Magnitude;
-    const rScale = d3.scaleSqrt().range([0, 20]);
-    
-	var parser = d3.timeParse("%m/%d/%Y")
-	var formater = d3.timeFormat("%m/%d/%Y")
-	
-    var commaFormat = d3.format(',');
-    var tip = d3.tip()
-      .attr('class', 'd3-tip')
-      .offset([-10, 0])
-      .html(d => `${formater(d.Date)}: ${commaFormat(d.Magnitude)}`);
-    svg.call(tip);
-
-    d3.queue()
-      .defer(d3.json, 'https://unpkg.com/world-atlas@1/world/110m.json')
-      .defer(d3.json, 'https://unpkg.com/world-atlas@1/world/50m.json')
-      .defer(d3.csv, 'database.csv')
-      .await((error, world110m, world50m, cities) => {
-        const countries110m = topojson
-          .feature(world110m, world110m.objects.countries);
-        const countries50m = topojson
-          .feature(world50m, world50m.objects.countries);
-      
-      
-        cities.forEach(d => {
-          d.latitude = +d.Latitude;
-          d.longitude = +d.Longitude;
-          d.Magnitude = +d.Magnitude;
-		  d.Date = parser(d.Date);
-        });
-      
-        rScale.domain([0, d3.max(cities, rValue)]);
-		s = d3.extent(cities, function(d){
-				return d.Date;
-			});
-			
-		console.log(s)
-		var colorScale = d3.scaleLinear()
-						   .domain(s)
-						   .range(['yellow','red']);
-		
-        cities.forEach(d => {
-          d.radius = rScale(rValue(d));
-		  d.color = colorScale(d.Date)
-        });
-      
-        const render = () => {
-          
-          // Render low resolution boundaries when moving,
-          // render high resolution boundaries when stopped.
-          path.attr('d', geoPath(moving ? countries110m : countries50m));
-          
-          const point = {
-            type: 'Point',
-            coordinates: [0, 0]
-          };
-          cities.forEach(d => {
-            point.coordinates[0] = d.Longitude;
-            point.coordinates[1] = d.Latitude;
-            d.projected = geoPath(point) ? projection(point.coordinates) : null;
-          });
-          
-          const k = Math.sqrt(projection.scale() / 500);
-          const circles = citiesG.selectAll('circle')
-            .data(cities.filter(d => d.projected));
-          circles.enter().append('circle')
-            .merge(circles)
-              .attr('cx', d => d.projected[0])
-              .attr('cy', d => d.projected[1])
-              .attr('fill', d => d.color)
-              .attr('fill-opacity', 0.4)
-              .attr('r', d => d.radius * k)
-              .on('mouseover', tip.show)
-              .on('mouseout', tip.hide);
-          circles.exit().remove();
-        };
-        render();
-
-        let rotate0, coords0;
-        const coords = () => projection.rotate(rotate0)
-          .invert([d3.event.x, d3.event.y]);
-
-        svg
-          .call(d3.drag()
-            .on('start', () => {
-              rotate0 = projection.rotate();
-              coords0 = coords();
-              moving = true;
-            })
-            .on('drag', () => {
-              const coords1 = coords();
-              projection.rotate([
-                rotate0[0] + coords1[0] - coords0[0],
-                rotate0[1] + coords1[1] - coords0[1],
-              ])
-              render();
-            })
-            .on('end', () => {
-              moving = false;
-              render();
-            })
-            // Goal: let zoom handle pinch gestures (not working correctly).
-            .filter(() => !(d3.event.touches && d3.event.touches.length === 2))
-          )
-          .call(d3.zoom()
-            .on('zoom', () => {
-              projection.scale(initialScale * d3.event.transform.k);
-              render();
-            })
-            .on('start', () => {
-              moving = true;
-            })
-            .on('end', () => {
-              moving = false;
-              render();
-            })
-          )
-      });
-  </script>
+  <form action="" onsubmit="return false">
+	Begin Date:<br>
+	<input type="date" id="minDate" min="1965-01-01" max="2016-12-31" value="2011-03-10"><br>
+	End Date:<br>
+	<input type="date" id="maxDate" min="1965-01-01" max="2016-12-31" value="2011-03-12"><br>
+	Minimum Magnitude: <br>
+	<input type="number" id="minMag" min="5.5" max="10.0" step=".1" value="8"><br>
+	<button onclick="filter()">Filter</button>
+  </form>
+  <svg width="960" height="640"></svg>
+  <script src="visualization.js"></script>
 </body>
