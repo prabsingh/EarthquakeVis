@@ -2,29 +2,27 @@
 function display(minDate, maxDate, minMag)
 {
 
-const svg = d3.select('svg').style('background-color', '#333');
+	const svg = d3.select('svg').style('background-color', '#005C99');
     const path = svg.append('path').attr('stroke', 'white');
-    const citiesG = svg.append('g');
+    const earthQuakeCitiesG = svg.append('g');
     const projection = d3.geoOrthographic();
-    const initialScale = projection.scale();
+    const initProjectionScale = projection.scale();
     const geoPath = d3.geoPath().projection(projection);
 
-    const rValue = d => d.Magnitude;
-    const rScale = d3.scaleSqrt().range([0, 20]);
+    const rmagValue = d => d.Magnitude;
+    const rSqrtScale = d3.scaleSqrt().range([0, 10]);
     
-	
 	var parser = d3.timeParse("%Y-%m-%d")
 	var parser2 = d3.timeParse("%m/%d/%Y")
 	var formater = d3.timeFormat("%m/%d/%Y")
 	
 	minDate = parser(minDate);
 	maxDate = parser(maxDate);
-
-    var commaFormat = d3.format(',');
+// tooltip output date and magnitude of earthquake
     var tip = d3.tip()
       .attr('class', 'd3-tip')
       .offset([-10, 0])
-      .html(d => `${formater(d.Date)}: ${commaFormat(d.Magnitude)}`);
+	  .html(d => `${formater(d.Date)} , Magnitude: ${d.Magnitude}`);
     svg.call(tip);
 
     d3.queue()
@@ -41,17 +39,10 @@ const svg = d3.select('svg').style('background-color', '#333');
 		  d.Date = parser2(d.Date);
         });
       
-        rScale.domain([0, d3.max(cities, rValue)]);
-		s = d3.extent(cities, function(d){
-				return d.Mag;
-			});
-			
-		var colorScale = d3.scaleLinear()
-						   .domain(s)
-						   .range(['yellow','red']);
-		
+        rSqrtScale.domain([0, d3.max(cities, rmagValue)]);
+
         cities.forEach(d => {
-          d.radius = rScale(rValue(d));
+          d.radius = rSqrtScale(rmagValue(d));
 		  d.color = 'yellow'
 		  if (d.Magnitude >= 6)
 		  {
@@ -61,19 +52,18 @@ const svg = d3.select('svg').style('background-color', '#333');
         const render = () => {
           
           path.attr('d', geoPath(countries110m));
-          
-          const point = {
+          const locationPoint = {
             type: 'Point',
             coordinates: [0, 0]
           };
           cities.forEach(d => {
-            point.coordinates[0] = d.Longitude;
-            point.coordinates[1] = d.Latitude;
-            d.projected = geoPath(point) ? projection(point.coordinates) : null;
+            locationPoint.coordinates[0] = d.Longitude;
+            locationPoint.coordinates[1] = d.Latitude;
+            d.projected = geoPath(locationPoint) ? projection(locationPoint.coordinates) : null;
           });
           
-          const k = Math.sqrt(projection.scale() / 900);
-          const circles = citiesG.selectAll('circle')
+          const k = Math.sqrt(projection.scale() / 400);
+          const circles = earthQuakeCitiesG.selectAll('circle')
             .data(cities.filter(d => d.projected && d.Magnitude > +minMag
 			&& d.Date > minDate && d.Date < maxDate));
           circles.enter().append('circle')
@@ -81,7 +71,7 @@ const svg = d3.select('svg').style('background-color', '#333');
               .attr('cx', d => d.projected[0])
               .attr('cy', d => d.projected[1])
               .attr('fill', d => d.color)
-              .attr('fill-opacity', 0.35)
+              .attr('fill-opacity', 0.45)
               .attr('r', d => d.radius * k)
               .on('mouseover', tip.show)
               .on('mouseout', tip.hide);
@@ -89,26 +79,44 @@ const svg = d3.select('svg').style('background-color', '#333');
         };
         render();
 
-        let rotate0, coords0;
-        const coords = () => projection.rotate(rotate0)
+        let rotateGraph, coordsGraph;
+        const coords = () => projection.rotate(rotateGraph)
           .invert([d3.event.x, d3.event.y]);
 
-        svg
+		svg
+		//dragging events
           .call(d3.drag()
             .on('start', () => {
-              rotate0 = projection.rotate();
-              coords0 = coords();
+              rotateGraph = projection.rotate();
+              coordsGraph = coords();
             })
             .on('drag', () => {
               const coords1 = coords();
               projection.rotate([
-                rotate0[0] + coords1[0] - coords0[0],
-                rotate0[1] + coords1[1] - coords0[1],
+                rotateGraph[0] + coords1[0] - coordsGraph[0],
+                rotateGraph[1] + coords1[1] - coordsGraph[1],
               ])
               render();
             })
-          )
-      });  
+            .on('end', () => {
+              render();
+            })
+            
+          )  
+		  //Zooming events
+          .call(d3.zoom()
+            .on('zoom', () => {
+              projection.scale(initProjectionScale * d3.event.transform.k);
+              render();
+            })
+            .on('start', () => {
+            })
+            .on('end', () => {
+              render();
+            })  
+          )  
+		 
+      });   
 }
 
 

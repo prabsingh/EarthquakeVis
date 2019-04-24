@@ -7,21 +7,23 @@
   <script src="https://unpkg.com/d3-tip@0.7.1/index.js"></script>
   <style>
     .d3-tip {
-      font-family: sans-serif;
+      font-family: Arial;
       font-size: 1.5em;
       line-height: 1;
-      padding: 7px;
-      background: blue;
+	  background: blue;
       color: lightgray;
-      border-radius: 20px;
+      padding: 6px;
+      border-radius: 25px;
     }
     circle:hover { 
       stroke: white;
-      stroke-width: 0.5px;
+      stroke-width: 0.7px;
       fill-opacity: 1;
     }
   </style>
+  <title> Earthquake </title>
 </head>
+	<h3 style="color:Blue;"> World Earthquake Map </h3>
 <body>
   <form action="" onsubmit="return false">
 	Begin Date:<br>
@@ -32,6 +34,6 @@
 	<input type="number" id="minMag" min="5.5" max="10.0" step=".1" value="8"><br>
 	<button onclick="filter()">Filter</button>
   </form>
-  <svg width="960" height="640"></svg>
+  <svg width="960" height="600"></svg>
   <script src="visualization.js"></script>
 </body>
